@@ -35,10 +35,11 @@ export default function Login() {
         {error ? <div className="mt-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
 
         <form onSubmit={submit} className="mt-4 space-y-3">
-          <Input label="Email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
+          <Input autoComplete="email" label="Email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
           <Input
             label="Password"
             type="password"
+            autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Your password"
