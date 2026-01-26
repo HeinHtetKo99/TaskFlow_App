@@ -2,6 +2,7 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useWorkspace } from "../context/WorkspaceContext.jsx";
 import Button from "./Button.jsx";
+import InviteModal from "./InviteModal.jsx";
 
 const NavItem = ({ to, children }) => (
   <NavLink
@@ -17,7 +18,19 @@ const NavItem = ({ to, children }) => (
 
 export default function AppShell() {
   const { user, logout } = useAuth();
-  const { loadingWorkspace, workspace, role } = useWorkspace();
+  const {
+    loadingWorkspace,
+    workspace,
+    role,
+
+    pendingInvite,
+    inviteBusy,
+    inviteError,
+    acceptPendingInvite,
+    declinePendingInvite,
+    closeInviteModal,
+  } = useWorkspace();
+
   const nav = useNavigate();
 
   const onLogout = async () => {
@@ -27,6 +40,16 @@ export default function AppShell() {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      <InviteModal
+        open={!!pendingInvite}
+        invite={pendingInvite}
+        busy={inviteBusy}
+        error={inviteError}
+        onAccept={acceptPendingInvite}
+        onDecline={declinePendingInvite}
+        onClose={closeInviteModal}
+      />
+
       <div className="mx-auto grid max-w-6xl grid-cols-1 gap-4 p-4 md:grid-cols-[260px_1fr]">
         <aside className="rounded-2xl border border-slate-200 bg-white p-4">
           <div className="mb-4">
@@ -47,6 +70,7 @@ export default function AppShell() {
             <div className="text-xs font-semibold text-slate-600">Signed in</div>
             <div className="truncate text-sm font-bold text-slate-900">{user?.email}</div>
             <div className="mt-1 text-xs text-slate-500">Role: {role || "-"}</div>
+
             <Button className="mt-3 w-full" variant="soft" onClick={onLogout}>
               Logout
             </Button>

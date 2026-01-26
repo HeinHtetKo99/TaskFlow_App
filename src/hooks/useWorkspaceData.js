@@ -1,7 +1,15 @@
 import { useEffect, useState } from "react";
 import { db } from "../firebase";
-import { doc, getDoc, onSnapshot, collection, query, orderBy } from "firebase/firestore";
-import { acceptInviteIfAny } from "../services/invites.service.js";
+import {
+  doc,
+  getDoc,
+  onSnapshot,
+  collection,
+  query,
+  orderBy,
+  setDoc,
+  serverTimestamp,
+} from "firebase/firestore";
 
 export function useWorkspaceData(user, booting, workspaceId, setWorkspaceId) {
   const [loading, setLoading] = useState(true);
@@ -23,6 +31,7 @@ export function useWorkspaceData(user, booting, workspaceId, setWorkspaceId) {
 
     const run = async () => {
       if (booting) return;
+
       if (!user) {
         setLoading(false);
         setRole(null);
@@ -33,18 +42,23 @@ export function useWorkspaceData(user, booting, workspaceId, setWorkspaceId) {
 
       setLoading(true);
 
-      // 1) load workspaceId from users/{uid}
+      // Ensure /users doc exists
       const uref = doc(db, "users", user.uid);
-      const usnap = await getDoc(uref);
-      let wid = usnap.exists() ? usnap.data().workspaceId : null;
-
-      // 2) If no workspace yet, try accept invite automatically
-      if (!wid) {
-        const acceptedWid = await acceptInviteIfAny(user);
-        if (acceptedWid) wid = acceptedWid;
+      let usnap = await getDoc(uref);
+      if (!usnap.exists()) {
+        await setDoc(
+          uref,
+          { uid: user.uid, email: user.email, workspaceId: null, createdAt: serverTimestamp() },
+          { merge: true }
+        );
+        usnap = await getDoc(uref);
       }
 
-      setWorkspaceId(wid || null);
+      // Prefer current state workspaceId, else read from user doc
+      let wid = workspaceId || (usnap.exists() ? usnap.data().workspaceId : null);
+
+      // keep state in sync
+      if (wid !== workspaceId) setWorkspaceId(wid || null);
 
       if (!wid) {
         setRole(null);
@@ -76,7 +90,7 @@ export function useWorkspaceData(user, booting, workspaceId, setWorkspaceId) {
       if (unsubMembers) unsubMembers();
       if (unsubWorkspace) unsubWorkspace();
     };
-  }, [user, booting]); // keep simple
+  }, [user, booting, workspaceId]); // ✅ important
 
   return { loading, role, members, workspace, refreshWorkspaceId };
 }
