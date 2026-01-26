@@ -10,6 +10,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 
 function Protected({ children }) {
   const { user, booting } = useAuth();
+
   if (booting) return <div className="p-6">Loading...</div>;
   if (!user) return <Navigate to="/login" replace />;
   return children;
@@ -17,6 +18,7 @@ function Protected({ children }) {
 
 function PublicOnly({ children }) {
   const { user, booting } = useAuth();
+
   if (booting) return <div className="p-6">Loading...</div>;
   if (user) return <Navigate to="/" replace />;
   return children;

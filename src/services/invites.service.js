@@ -25,19 +25,13 @@ export async function ensureUserDoc(user) {
   );
 }
 
-/**
- * ✅ Admin sends invite by email
- * Creates TWO docs:
- * 1) workspaces/{wid}/invites/{autoId}
- * 2) inviteInbox/{emailLower}/items/{sameInviteId}   <-- realtime target
- */
 export async function inviteMember({ workspaceId, adminUser, email }) {
   const emailClean = (email || "").trim();
   const emailLower = lower(emailClean);
   if (!emailLower) throw new Error("Email required.");
 
+  // admin tracking
   const wInvitesRef = collection(db, "workspaces", workspaceId, "invites");
-
   const inviteDocRef = await addDoc(wInvitesRef, {
     email: emailClean,
     emailLower,
@@ -48,7 +42,7 @@ export async function inviteMember({ workspaceId, adminUser, email }) {
     createdAt: serverTimestamp(),
   });
 
-  // ✅ IMPORTANT: use SAME id => invitee listener will receive instantly
+  // invitee inbox (THIS is what realtime listens to)
   await setDoc(doc(db, "inviteInbox", emailLower, "items", inviteDocRef.id), {
     inviteId: inviteDocRef.id,
     workspaceId,
@@ -63,9 +57,6 @@ export async function inviteMember({ workspaceId, adminUser, email }) {
   return inviteDocRef.id;
 }
 
-/**
- * ✅ Register.jsx may use this (one-time)
- */
 export async function findPendingInvite(user) {
   const emailLower = lower(user?.email);
   if (!emailLower) return null;
@@ -80,7 +71,8 @@ export async function findPendingInvite(user) {
 }
 
 /**
- * ✅ REALTIME: invitee listens here (NO refresh)
+ * ✅ Real-time inbox listener (NO refresh)
+ * NOTE: no query filters => fewer edge cases (works instantly)
  */
 export function subscribeInviteInbox(user, onInvites, onError) {
   const emailLower = lower(user?.email);
@@ -98,38 +90,24 @@ export function subscribeInviteInbox(user, onInvites, onError) {
   );
 }
 
-// Backward-compatible alias (if any file still imports this name)
-export function subscribePendingInvite(user, onInvite, onError) {
-  return subscribeInviteInbox(
-    user,
-    (list) => {
-      const pending = list.find((x) => x.status === "pending") || null;
-      onInvite(pending);
-    },
-    onError
-  );
-}
-
 export async function acceptInvite({ user, invite }) {
   const workspaceId = invite.workspaceId;
   const inviteId = invite.inviteId || invite.id;
   const emailLower = lower(user.email);
 
-  // switch active workspace
   await setDoc(
     doc(db, "users", user.uid),
     { uid: user.uid, email: user.email, workspaceId, updatedAt: serverTimestamp() },
     { merge: true }
   );
 
-  // create membership (invitee self-create)
   await setDoc(
     doc(db, "workspaces", workspaceId, "members", user.uid),
     { uid: user.uid, email: user.email, role: "member", joinedAt: serverTimestamp() },
     { merge: true }
   );
 
-  // best effort admin tracking update
+  // best effort
   try {
     await updateDoc(doc(db, "workspaces", workspaceId, "invites", inviteId), {
       status: "accepted",
@@ -139,7 +117,7 @@ export async function acceptInvite({ user, invite }) {
     });
   } catch (_) {}
 
-  // delete inbox => modal disappears immediately (realtime)
+  // remove inbox => modal disappears instantly
   await deleteDoc(doc(db, "inviteInbox", emailLower, "items", inviteId));
 
   return workspaceId;

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { useAuth } from "./AuthContext.jsx";
 import { useWorkspaceData } from "../hooks/useWorkspaceData.js";
 import {
@@ -10,51 +10,42 @@ import {
 const WorkspaceCtx = createContext(null);
 
 export function WorkspaceProvider({ children }) {
-  const { user, booting } = useAuth();
+  const { user, authReady } = useAuth();
 
   const [workspaceId, setWorkspaceId] = useState(null);
 
   const { loading, role, members, workspace, refreshWorkspaceId } =
-    useWorkspaceData(user, booting, workspaceId, setWorkspaceId);
+    useWorkspaceData(user, !authReady, workspaceId, setWorkspaceId);
 
-  // 🔒 keep latest workspaceId without resubscribing realtime listener
-  const workspaceIdRef = useRef(null);
+  // keep latest workspaceId without resubscribing listener
+  const widRef = useRef(null);
   useEffect(() => {
-    workspaceIdRef.current = workspaceId;
+    widRef.current = workspaceId;
   }, [workspaceId]);
 
-  // invite UI
+  // invite state
   const [pendingInvite, setPendingInvite] = useState(null);
   const [inviteBusy, setInviteBusy] = useState(false);
   const [inviteError, setInviteError] = useState("");
-  const dismissedIdRef = useRef(""); // don’t reopen same invite after user closes
 
-  // ✅ REALTIME invite listener (NO refresh, NO lost events)
+  // ✅ REALTIME inbox listener (NO refresh)
   useEffect(() => {
-    if (!user || booting) return;
+    if (!authReady) return;
+    if (!user?.email) return;
 
     setInviteError("");
 
     const unsub = subscribeInviteInbox(
       user,
       (invites) => {
-        // pick first pending invite
         const next = invites.find((x) => x.status === "pending") || null;
 
         if (!next) {
           setPendingInvite(null);
-          dismissedIdRef.current = "";
           return;
         }
 
-        // if user closed this invite already, don't reopen until it changes
-        if (dismissedIdRef.current && dismissedIdRef.current === next.id) {
-          setPendingInvite(null);
-          return;
-        }
-
-        // show if invite targets different workspace than current
-        const currentWid = workspaceIdRef.current;
+        const currentWid = widRef.current;
         if (next.workspaceId && next.workspaceId !== currentWid) {
           setPendingInvite(next);
         } else {
@@ -70,12 +61,9 @@ export function WorkspaceProvider({ children }) {
     return () => {
       if (typeof unsub === "function") unsub();
     };
-  }, [user?.uid, booting]); // ✅ DO NOT depend on workspaceId
+  }, [authReady, user?.email]); // ✅ important
 
-  const closeInviteModal = () => {
-    if (pendingInvite?.id) dismissedIdRef.current = pendingInvite.id;
-    setPendingInvite(null);
-  };
+  const closeInviteModal = () => setPendingInvite(null);
 
   const acceptPendingInvite = async () => {
     if (!user || !pendingInvite) return;
@@ -85,7 +73,6 @@ export function WorkspaceProvider({ children }) {
       const wid = await acceptInvite({ user, invite: pendingInvite });
       setWorkspaceId(wid);
       setPendingInvite(null);
-      dismissedIdRef.current = "";
       await refreshWorkspaceId();
     } catch (e) {
       setInviteError(e?.message || "Failed to accept invite.");
@@ -101,7 +88,6 @@ export function WorkspaceProvider({ children }) {
     try {
       await declineInvite({ user, invite: pendingInvite });
       setPendingInvite(null);
-      dismissedIdRef.current = "";
       await refreshWorkspaceId();
     } catch (e) {
       setInviteError(e?.message || "Failed to decline invite.");
@@ -110,38 +96,29 @@ export function WorkspaceProvider({ children }) {
     }
   };
 
-  const value = useMemo(
-    () => ({
-      workspaceId,
-      setWorkspaceId,
-      loadingWorkspace: loading,
-      role,
-      members,
-      workspace,
-      refreshWorkspaceId,
-      isAdmin: role === "admin",
+  return (
+    <WorkspaceCtx.Provider
+      value={{
+        workspaceId,
+        setWorkspaceId,
+        loadingWorkspace: loading,
+        role,
+        members,
+        workspace,
+        refreshWorkspaceId,
+        isAdmin: role === "admin",
 
-      pendingInvite,
-      inviteBusy,
-      inviteError,
-      acceptPendingInvite,
-      declinePendingInvite,
-      closeInviteModal,
-    }),
-    [
-      workspaceId,
-      loading,
-      role,
-      members,
-      workspace,
-      refreshWorkspaceId,
-      pendingInvite,
-      inviteBusy,
-      inviteError,
-    ]
+        pendingInvite,
+        inviteBusy,
+        inviteError,
+        acceptPendingInvite,
+        declinePendingInvite,
+        closeInviteModal,
+      }}
+    >
+      {children}
+    </WorkspaceCtx.Provider>
   );
-
-  return <WorkspaceCtx.Provider value={value}>{children}</WorkspaceCtx.Provider>;
 }
 
 export function useWorkspace() {
