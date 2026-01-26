@@ -1,16 +1,80 @@
-# React + Vite
+# TaskFlow ✅ (React + Firebase Team Task Manager)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+TaskFlow is a production-style team task management app (Kanban board) built with **React + Vite + Tailwind CSS + Firebase**.  
+It demonstrates real-world patterns used in modern web apps: **authentication, role-based access, realtime collaboration, clean component architecture, and safe data workflows**.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### Authentication
+- Register & Login with email/password
+- Session persistence across refresh
+- Protected routes (members can’t access pages unless signed in)
 
-## React Compiler
+### Workspaces & Roles
+- A **workspace is auto-created** on first signup
+- **Admin (owner)**:
+  - invite members by email
+  - create/edit tasks
+  - assign tasks to members
+  - move tasks
+  - trash/restore/permanently delete
+- **Member**:
+  - view tasks in the workspace
+  - move task status (Todo/Doing/Done)
+  - cannot edit or trash tasks
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Realtime Invitations (Key Interview Feature)
+- Admin sends an invite to an email address
+- If the invitee is logged in, they see a **realtime invitation popup immediately**
+- Invitee can **Accept & Join** or **Decline**
+- Only accepted members can see the workspace tasks
 
-## Expanding the ESLint configuration
+### Task Board
+- Kanban columns: **Todo / Doing / Done**
+- Create task with:
+  - title
+  - description
+  - due date
+  - optional assignee (admin-only)
+- Task cards show:
+  - assignee name/email
+  - due date
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### Trash (Safe Delete)
+- Tasks moved to Trash are not permanently deleted immediately
+- Admin can restore from Trash anytime
+- Admin can permanently delete tasks from Trash
+
+---
+
+## Tech Stack
+
+- **React (JSX)**
+- **Vite**
+- **Tailwind CSS**
+- **React Router**
+- **Firebase Authentication**
+- **Cloud Firestore (Realtime Database)**
+
+---
+---
+
+## Getting Started
+
+### 1) Install
+```bash
+npm install
+2) Add environment variables
+Create a .env file in the project root:
+
+VITE_FIREBASE_API_KEY=YOUR_KEY
+VITE_FIREBASE_AUTH_DOMAIN=YOUR_DOMAIN
+VITE_FIREBASE_PROJECT_ID=YOUR_PROJECT_ID
+VITE_FIREBASE_STORAGE_BUCKET=YOUR_BUCKET
+VITE_FIREBASE_MESSAGING_SENDER_ID=YOUR_SENDER_ID
+VITE_FIREBASE_APP_ID=YOUR_APP_ID
+VITE_FIREBASE_MEASUREMENT_ID=YOUR_MEASUREMENT_ID
+✅ Important: restart dev server after adding .env
+
+3) Run locally
+npm run dev
