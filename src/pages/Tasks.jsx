@@ -36,7 +36,7 @@ export default function Tasks() {
   const { data: tasksRaw, loading, error } = useCollection(q, [workspaceId]);
 
   // ✅ Sort in JS instead of Firestore
-  const tasks = useMemo(() => {
+  const tasksSorted = useMemo(() => {
     const copy = [...tasksRaw];
     copy.sort((a, b) => toMs(b.updatedAt) - toMs(a.updatedAt));
     return copy;
@@ -44,14 +44,28 @@ export default function Tasks() {
 
   const membersByUid = useMemo(() => {
     const map = {};
-    members.forEach((m) => (map[m.uid] = m));
+    (members || []).forEach((m) => (map[m.uid] = m));
     return map;
   }, [members]);
 
+  // ✅ Visibility: members can only see tasks assigned to them
+  // (admin still sees all tasks)
+  const visibleTasks = useMemo(() => {
+    if (!user?.uid) return [];
+    if (isAdmin) return tasksSorted;
+
+    return tasksSorted.filter((t) => {
+      // support both uid + email (in case older tasks)
+      if (t.assigneeUid) return t.assigneeUid === user.uid;
+      if (t.assigneeEmail && user.email) return t.assigneeEmail === user.email;
+      return false;
+    });
+  }, [tasksSorted, isAdmin, user?.uid, user?.email]);
+
   const columns = {
-    todo: tasks.filter((t) => t.status === "todo"),
-    doing: tasks.filter((t) => t.status === "doing"),
-    done: tasks.filter((t) => t.status === "done"),
+    todo: visibleTasks.filter((t) => t.status === "todo"),
+    doing: visibleTasks.filter((t) => t.status === "doing"),
+    done: visibleTasks.filter((t) => t.status === "done"),
   };
 
   const onCreate = () => {
@@ -101,9 +115,18 @@ export default function Tasks() {
     }
   };
 
+  // ✅ Only assignee can move status (even admin can't move if not assignee)
   const onMove = async (task, status) => {
     if (!workspaceId) return;
+    if (!user?.uid) return;
     if (task.status === status) return;
+
+    const isAssignee =
+      (task.assigneeUid && task.assigneeUid === user.uid) ||
+      (!task.assigneeUid && task.assigneeEmail && user.email && task.assigneeEmail === user.email);
+
+    if (!isAssignee) return; // blocked: not the assignee
+
     await updateTask({
       workspaceId,
       actor: user,
