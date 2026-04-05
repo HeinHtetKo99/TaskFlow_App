@@ -65,10 +65,12 @@ export default function Tasks() {
   const columns = {
     todo: visibleTasks.filter((t) => t.status === "todo"),
     doing: visibleTasks.filter((t) => t.status === "doing"),
+    review: visibleTasks.filter((t) => t.status === "review"),
     done: visibleTasks.filter((t) => t.status === "done"),
   };
 
   const onCreate = () => {
+    if (!isAdmin) return;
     setEditing(null);
     setOpen(true);
   };
@@ -80,14 +82,11 @@ export default function Tasks() {
 
   const onSubmit = async (payload) => {
     if (!workspaceId) return;
+    if (!isAdmin) return;
     setSaving(true);
     try {
       if (!editing) {
-        const finalPayload = isAdmin
-          ? payload
-          : { ...payload, assigneeUid: user.uid, assigneeEmail: user.email };
-
-        await createTask({ workspaceId, actor: user, payload: finalPayload });
+        await createTask({ workspaceId, actor: user, payload });
       } else {
         const patch = {
           title: payload.title.trim(),
@@ -96,10 +95,8 @@ export default function Tasks() {
           dueDate: payload.dueDate ? new Date(payload.dueDate) : null,
         };
 
-        if (isAdmin) {
-          patch.assigneeUid = payload.assigneeUid || null;
-          patch.assigneeEmail = payload.assigneeEmail || null;
-        }
+        patch.assigneeUid = payload.assigneeUid || null;
+        patch.assigneeEmail = payload.assigneeEmail || null;
 
         await updateTask({
           workspaceId,
@@ -121,11 +118,15 @@ export default function Tasks() {
     if (!user?.uid) return;
     if (task.status === status) return;
 
-    const isAssignee =
-      (task.assigneeUid && task.assigneeUid === user.uid) ||
-      (!task.assigneeUid && task.assigneeEmail && user.email && task.assigneeEmail === user.email);
+    if (!isAdmin) {
+      if (task.status === "done" || status === "done") return;
 
-    if (!isAssignee) return; // blocked: not the assignee
+      const isAssignee =
+        (task.assigneeUid && task.assigneeUid === user.uid) ||
+        (!task.assigneeUid && task.assigneeEmail && user.email && task.assigneeEmail === user.email);
+
+      if (!isAssignee) return;
+    }
 
     await updateTask({
       workspaceId,
@@ -147,10 +148,10 @@ export default function Tasks() {
         <div>
           <div className="text-xl font-black text-slate-900">Tasks</div>
           <div className="text-sm text-slate-600">
-            Create, assign (admin), move status, trash, restore.
+            Admin creates/assigns. Members move to Review. Admin approves Done.
           </div>
         </div>
-        <Button onClick={onCreate}>+ Create Task</Button>
+        {isAdmin ? <Button onClick={onCreate}>+ Create Task</Button> : null}
       </div>
 
       {error ? (
@@ -163,12 +164,18 @@ export default function Tasks() {
         <div className="mt-6 text-sm text-slate-600">Loading tasks...</div>
       ) : null}
 
-      <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-        {["todo", "doing", "done"].map((col) => (
+      <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-4">
+        {["todo", "doing", "review", "done"].map((col) => (
           <div key={col} className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
             <div className="mb-3 flex items-center justify-between">
               <div className="text-sm font-extrabold text-slate-900">
-                {col === "todo" ? "Todo" : col === "doing" ? "Doing" : "Done"}
+                {col === "todo"
+                  ? "Todo"
+                  : col === "doing"
+                  ? "Doing"
+                  : col === "review"
+                  ? "Review"
+                  : "Done"}
               </div>
               <div className="text-xs text-slate-500">{columns[col].length}</div>
             </div>

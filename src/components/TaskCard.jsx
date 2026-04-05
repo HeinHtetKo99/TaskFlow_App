@@ -64,13 +64,18 @@ export default function TaskCard({
         <Button variant="soft" onClick={() => onMove(task, "doing")}>
           Doing
         </Button>
-        <Button variant="soft" onClick={() => onMove(task, "done")}>
-          Done
+        <Button variant="soft" onClick={() => onMove(task, "review")}>
+          Review
         </Button>
+        {isAdmin ? (
+          <Button variant="soft" onClick={() => onMove(task, "done")}>
+            Done
+          </Button>
+        ) : null}
 
         {!isAdmin ? (
           <div className="ml-auto self-center text-xs text-slate-500">
-            Members can move status. Admin edits & trashes.
+            Members move to Review. Admin approves Done.
           </div>
         ) : null}
       </div>

@@ -65,6 +65,7 @@ export default function TaskForm({
           >
             <option value="todo">Todo</option>
             <option value="doing">Doing</option>
+            <option value="review">Review</option>
             <option value="done">Done</option>
           </select>
         </label>
