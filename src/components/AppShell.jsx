@@ -8,8 +8,10 @@ const NavItem = ({ to, children }) => (
   <NavLink
     to={to}
     className={({ isActive }) =>
-      "block rounded-xl px-3 py-2 text-sm font-semibold transition " +
-      (isActive ? "bg-slate-900 text-white" : "text-slate-700 hover:bg-slate-100")
+      "block rounded-2xl px-4 py-3 text-base font-semibold transition " +
+      (isActive
+        ? "bg-slate-900 text-white shadow-sm"
+        : "text-slate-700 hover:bg-slate-100 hover:text-slate-900")
     }
   >
     {children}
@@ -50,11 +52,11 @@ export default function AppShell() {
         onClose={closeInviteModal}
       />
 
-      <div className="mx-auto grid max-w-6xl grid-cols-1 gap-4 p-4 md:grid-cols-[260px_1fr]">
-        <aside className="rounded-2xl border border-slate-200 bg-white p-4">
-          <div className="mb-4">
-            <div className="text-lg font-black text-slate-900">TaskFlow</div>
-            <div className="text-xs text-slate-500">
+      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 p-6 md:grid-cols-[280px_1fr]">
+        <aside className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-6">
+            <div className="text-xl font-black tracking-tight text-slate-900">TaskFlow</div>
+            <div className="mt-1 text-sm text-slate-500">
               {loadingWorkspace ? "Loading workspace..." : workspace?.name || "No workspace"}
             </div>
           </div>
@@ -66,10 +68,10 @@ export default function AppShell() {
             <NavItem to="/trash">Trash</NavItem>
           </div>
 
-          <div className="mt-6 rounded-2xl bg-slate-50 p-3">
-            <div className="text-xs font-semibold text-slate-600">Signed in</div>
-            <div className="truncate text-sm font-bold text-slate-900">{user?.email}</div>
-            <div className="mt-1 text-xs text-slate-500">Role: {role || "-"}</div>
+          <div className="mt-8 rounded-3xl bg-slate-50 p-4">
+            <div className="text-sm font-semibold text-slate-600">Signed in</div>
+            <div className="mt-1 truncate text-base font-bold text-slate-900">{user?.email}</div>
+            <div className="mt-1 text-sm text-slate-500">Role: {role || "-"}</div>
 
             <Button className="mt-3 w-full" variant="soft" onClick={onLogout}>
               Logout
@@ -77,7 +79,7 @@ export default function AppShell() {
           </div>
         </aside>
 
-        <main className="rounded-2xl border border-slate-200 bg-white p-4">
+        <main className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <Outlet />
         </main>
       </div>

@@ -44,16 +44,24 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6">
-        <div className="text-2xl font-black text-slate-900">Create account</div>
-        <div className="mt-1 text-sm text-slate-600">TaskFlow — team task tracker</div>
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-slate-50 to-white">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-slate-200/60 blur-3xl" />
+        <div className="absolute -bottom-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-slate-100 blur-3xl" />
+      </div>
+
+      <div className="relative flex min-h-screen items-center justify-center p-6">
+        <div className="w-full max-w-lg rounded-3xl border border-slate-200/70 bg-white/90 p-8 shadow-sm backdrop-blur">
+          <div className="text-3xl font-black text-slate-900">Create account</div>
+          <div className="mt-2 text-base text-slate-600">TaskFlow — team task tracker</div>
 
         {error ? (
-          <div className="mt-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</div>
+          <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            {error}
+          </div>
         ) : null}
 
-        <form onSubmit={submit} className="mt-4 space-y-3">
+        <form onSubmit={submit} className="mt-6 space-y-4">
           <Input
             label="Email"
             value={email}
@@ -72,13 +80,14 @@ export default function Register() {
           </Button>
         </form>
 
-        <div className="mt-4 text-sm text-slate-600">
+        <div className="mt-6 text-base text-slate-600">
           Already have an account?{" "}
-          <Link className="font-semibold text-slate-900 underline" to="/login">
+          <Link className="font-semibold text-slate-900 underline underline-offset-4" to="/login">
             Login
           </Link>
         </div>
       </div>
+    </div>
     </div>
   );
 }
