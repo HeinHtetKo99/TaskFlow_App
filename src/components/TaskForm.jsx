@@ -2,6 +2,14 @@ import { useEffect, useState } from "react";
 import Input from "./Input.jsx";
 import Button from "./Button.jsx";
 
+const selectClass =
+  "w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 disabled:bg-slate-100 disabled:text-slate-500";
+
+const textareaClass =
+  "w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-500/10";
+
+const labelClass = "mb-2 block text-sm font-semibold text-slate-700";
+
 export default function TaskForm({
   initial,
   members,
@@ -20,9 +28,12 @@ export default function TaskForm({
     setDescription(initial?.description || "");
     setStatus(initial?.status || "todo");
 
-    const d = initial?.dueDate?.toDate ? initial.dueDate.toDate() : (initial?.dueDate ? new Date(initial.dueDate) : null);
+    const d = initial?.dueDate?.toDate
+      ? initial.dueDate.toDate()
+      : initial?.dueDate
+      ? new Date(initial.dueDate)
+      : null;
     setDueDate(d ? d.toISOString().slice(0, 10) : "");
-
     setAssigneeUid(initial?.assigneeUid || "");
   }, [initial]);
 
@@ -36,33 +47,35 @@ export default function TaskForm({
       description,
       status,
       dueDate: dueDate || "",
-      assigneeUid: isAdmin ? (assigneeUid || "") : "", // non-admin cannot assign
-      assigneeEmail: isAdmin ? (assignee?.email || "") : "",
+      assigneeUid: isAdmin ? assigneeUid || "" : "",
+      assigneeEmail: isAdmin ? assignee?.email || "" : "",
     });
   };
 
   return (
-    <form onSubmit={submit} className="space-y-3">
-      <Input label="Title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Fix login UI" />
+    <form onSubmit={submit} className="space-y-5">
+      <Input
+        label="Title"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="e.g. Redesign onboarding flow"
+      />
+
       <label className="block">
-        <div className="mb-1 text-xs font-semibold text-slate-600">Description</div>
+        <span className={labelClass}>Description</span>
         <textarea
-          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-slate-400"
+          className={textareaClass}
           rows={4}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="Optional details..."
+          placeholder="Add details, context, or acceptance criteria..."
         />
       </label>
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <label className="block">
-          <div className="mb-1 text-xs font-semibold text-slate-600">Status</div>
-          <select
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-slate-400"
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-          >
+          <span className={labelClass}>Status</span>
+          <select className={selectClass} value={status} onChange={(e) => setStatus(e.target.value)}>
             <option value="todo">Todo</option>
             <option value="doing">Doing</option>
             <option value="review">Review</option>
@@ -71,21 +84,21 @@ export default function TaskForm({
         </label>
 
         <label className="block">
-          <div className="mb-1 text-xs font-semibold text-slate-600">Due date</div>
+          <span className={labelClass}>Due date</span>
           <input
             type="date"
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-slate-400"
+            className={selectClass}
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
           />
         </label>
 
         <label className="block">
-          <div className="mb-1 text-xs font-semibold text-slate-600">
-            Assignee {isAdmin ? "" : "(admin only)"}
-          </div>
+          <span className={labelClass}>
+            Assignee {!isAdmin && <span className="font-normal text-slate-400">(admin only)</span>}
+          </span>
           <select
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-slate-400 disabled:bg-slate-50"
+            className={selectClass}
             value={assigneeUid}
             onChange={(e) => setAssigneeUid(e.target.value)}
             disabled={!isAdmin}
@@ -100,9 +113,11 @@ export default function TaskForm({
         </label>
       </div>
 
-      <div className="flex gap-2 justify-end">
-        <Button variant="soft" type="button" onClick={onCancel}>Cancel</Button>
-        <Button type="submit">{initial ? "Update Task" : "Create Task"}</Button>
+      <div className="flex justify-end gap-2 border-t border-slate-100 pt-5">
+        <Button variant="outline" type="button" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button type="submit">{initial ? "Save Changes" : "Create Task"}</Button>
       </div>
     </form>
   );

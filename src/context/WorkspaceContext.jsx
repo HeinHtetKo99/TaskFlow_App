@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useAuth } from "./AuthContext.jsx";
 import { useWorkspaceData } from "../hooks/useWorkspaceData.js";
 import {
@@ -17,53 +17,62 @@ export function WorkspaceProvider({ children }) {
   const { loading, role, members, workspace, refreshWorkspaceId } =
     useWorkspaceData(user, !authReady, workspaceId, setWorkspaceId);
 
-  // keep latest workspaceId without resubscribing listener
-  const widRef = useRef(null);
-  useEffect(() => {
-    widRef.current = workspaceId;
-  }, [workspaceId]);
-
-  // invite state
-  const [pendingInvite, setPendingInvite] = useState(null);
+  const [inboxInvites, setInboxInvites] = useState([]);
   const [inviteBusy, setInviteBusy] = useState(false);
   const [inviteError, setInviteError] = useState("");
 
-  // ✅ REALTIME inbox listener (NO refresh)
+  const pendingInvite = useMemo(() => {
+    const next = inboxInvites.find((x) => x.status === "pending") || null;
+    if (!next) return null;
+    if (!next.workspaceId) return next;
+    if (!workspaceId || next.workspaceId !== workspaceId) return next;
+    return null;
+  }, [inboxInvites, workspaceId]);
+
+  // Realtime inbox listener; pending invite is derived from inbox + workspaceId.
   useEffect(() => {
     if (!authReady) return;
-    if (!user?.email) return;
 
+    if (!user?.email) {
+      setInboxInvites([]);
+      setInviteError("");
+      return;
+    }
+
+    let unsub = () => {};
+    let cancelled = false;
+
+    setInboxInvites([]);
     setInviteError("");
 
-    const unsub = subscribeInviteInbox(
-      user,
-      (invites) => {
-        const next = invites.find((x) => x.status === "pending") || null;
+    user
+      .getIdToken()
+      .then(() => {
+        if (cancelled) return;
 
-        if (!next) {
-          setPendingInvite(null);
-          return;
+        unsub = subscribeInviteInbox(
+          user,
+          (invites) => setInboxInvites(invites),
+          (err) => {
+            setInviteError(err?.message || "Missing or insufficient permissions.");
+            setInboxInvites([]);
+          }
+        );
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setInviteError(err?.message || "Failed to load invitations.");
+          setInboxInvites([]);
         }
-
-        const currentWid = widRef.current;
-        if (next.workspaceId && next.workspaceId !== currentWid) {
-          setPendingInvite(next);
-        } else {
-          setPendingInvite(null);
-        }
-      },
-      (err) => {
-        setInviteError(err?.message || "Missing or insufficient permissions.");
-        setPendingInvite(null);
-      }
-    );
+      });
 
     return () => {
-      if (typeof unsub === "function") unsub();
+      cancelled = true;
+      unsub();
     };
-  }, [authReady, user?.email]); // ✅ important
+  }, [authReady, user?.email, user?.uid]);
 
-  const closeInviteModal = () => setPendingInvite(null);
+  const closeInviteModal = () => setInboxInvites((prev) => prev.filter((x) => x.status !== "pending"));
 
   const acceptPendingInvite = async () => {
     if (!user || !pendingInvite) return;
@@ -72,7 +81,7 @@ export function WorkspaceProvider({ children }) {
     try {
       const wid = await acceptInvite({ user, invite: pendingInvite });
       setWorkspaceId(wid);
-      setPendingInvite(null);
+      setInboxInvites((prev) => prev.filter((x) => x.id !== pendingInvite.id));
       await refreshWorkspaceId();
     } catch (e) {
       setInviteError(e?.message || "Failed to accept invite.");
@@ -87,7 +96,7 @@ export function WorkspaceProvider({ children }) {
     setInviteError("");
     try {
       await declineInvite({ user, invite: pendingInvite });
-      setPendingInvite(null);
+      setInboxInvites((prev) => prev.filter((x) => x.id !== pendingInvite.id));
       await refreshWorkspaceId();
     } catch (e) {
       setInviteError(e?.message || "Failed to decline invite.");

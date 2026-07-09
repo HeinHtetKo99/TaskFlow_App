@@ -8,6 +8,8 @@ import Button from "../components/Button.jsx";
 import Modal from "../components/Modal.jsx";
 import TaskForm from "../components/TaskForm.jsx";
 import TaskCard from "../components/TaskCard.jsx";
+import PageHeader from "../components/PageHeader.jsx";
+import Badge from "../components/Badge.jsx";
 import { createTask, softDeleteTask, updateTask } from "../services/tasks.service.js";
 
 const toMs = (v) => {
@@ -17,6 +19,13 @@ const toMs = (v) => {
   return isNaN(d.getTime()) ? 0 : d.getTime();
 };
 
+const columns = [
+  { key: "todo", label: "Todo", variant: "todo", accent: "border-t-slate-400" },
+  { key: "doing", label: "In Progress", variant: "doing", accent: "border-t-sky-500" },
+  { key: "review", label: "Review", variant: "review", accent: "border-t-violet-500" },
+  { key: "done", label: "Done", variant: "done", accent: "border-t-emerald-500" },
+];
+
 export default function Tasks() {
   const { user } = useAuth();
   const { workspaceId, members, isAdmin } = useWorkspace();
@@ -25,7 +34,6 @@ export default function Tasks() {
   const [editing, setEditing] = useState(null);
   const [saving, setSaving] = useState(false);
 
-  // ✅ NO orderBy => NO composite index needed
   const q = workspaceId
     ? query(
         collection(db, "workspaces", workspaceId, "tasks"),
@@ -35,7 +43,6 @@ export default function Tasks() {
 
   const { data: tasksRaw, loading, error } = useCollection(q, [workspaceId]);
 
-  // ✅ Sort in JS instead of Firestore
   const tasksSorted = useMemo(() => {
     const copy = [...tasksRaw];
     copy.sort((a, b) => toMs(b.updatedAt) - toMs(a.updatedAt));
@@ -48,26 +55,24 @@ export default function Tasks() {
     return map;
   }, [members]);
 
-  // ✅ Visibility: members can only see tasks assigned to them
-  // (admin still sees all tasks)
   const visibleTasks = useMemo(() => {
     if (!user?.uid) return [];
     if (isAdmin) return tasksSorted;
 
     return tasksSorted.filter((t) => {
-      // support both uid + email (in case older tasks)
       if (t.assigneeUid) return t.assigneeUid === user.uid;
       if (t.assigneeEmail && user.email) return t.assigneeEmail === user.email;
       return false;
     });
   }, [tasksSorted, isAdmin, user?.uid, user?.email]);
 
-  const columns = {
-    todo: visibleTasks.filter((t) => t.status === "todo"),
-    doing: visibleTasks.filter((t) => t.status === "doing"),
-    review: visibleTasks.filter((t) => t.status === "review"),
-    done: visibleTasks.filter((t) => t.status === "done"),
-  };
+  const columnData = useMemo(() => {
+    const map = {};
+    columns.forEach((c) => {
+      map[c.key] = visibleTasks.filter((t) => t.status === c.key);
+    });
+    return map;
+  }, [visibleTasks]);
 
   const onCreate = () => {
     if (!isAdmin) return;
@@ -81,8 +86,7 @@ export default function Tasks() {
   };
 
   const onSubmit = async (payload) => {
-    if (!workspaceId) return;
-    if (!isAdmin) return;
+    if (!workspaceId || !isAdmin) return;
     setSaving(true);
     try {
       if (!editing) {
@@ -93,11 +97,9 @@ export default function Tasks() {
           description: payload.description || "",
           status: payload.status,
           dueDate: payload.dueDate ? new Date(payload.dueDate) : null,
+          assigneeUid: payload.assigneeUid || null,
+          assigneeEmail: payload.assigneeEmail || null,
         };
-
-        patch.assigneeUid = payload.assigneeUid || null;
-        patch.assigneeEmail = payload.assigneeEmail || null;
-
         await updateTask({
           workspaceId,
           actor: user,
@@ -112,19 +114,14 @@ export default function Tasks() {
     }
   };
 
-  // ✅ Only assignee can move status (even admin can't move if not assignee)
   const onMove = async (task, status) => {
-    if (!workspaceId) return;
-    if (!user?.uid) return;
-    if (task.status === status) return;
+    if (!workspaceId || !user?.uid || task.status === status) return;
 
     if (!isAdmin) {
       if (task.status === "done" || status === "done") return;
-
       const isAssignee =
         (task.assigneeUid && task.assigneeUid === user.uid) ||
         (!task.assigneeUid && task.assigneeEmail && user.email && task.assigneeEmail === user.email);
-
       if (!isAssignee) return;
     }
 
@@ -143,45 +140,51 @@ export default function Tasks() {
   };
 
   return (
-    <div>
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <div className="text-xl font-black text-slate-900">Tasks</div>
-          <div className="text-sm text-slate-600">
-            Admin creates/assigns. Members move to Review. Admin approves Done.
-          </div>
-        </div>
-        {isAdmin ? <Button onClick={onCreate}>+ Create Task</Button> : null}
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Tasks"
+        subtitle="Admin creates and assigns. Members move to Review. Admin approves Done."
+        action={
+          isAdmin ? (
+            <Button onClick={onCreate}>
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              New Task
+            </Button>
+          ) : null
+        }
+      />
 
       {error ? (
-        <div className="mt-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">
-          {error}
-        </div>
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>
       ) : null}
 
       {loading ? (
-        <div className="mt-6 text-sm text-slate-600">Loading tasks...</div>
+        <div className="flex items-center gap-3 py-12 text-sm text-slate-500">
+          <svg className="h-4 w-4 animate-spin text-indigo-500" viewBox="0 0 24 24" fill="none">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          Loading tasks...
+        </div>
       ) : null}
 
-      <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-4">
-        {["todo", "doing", "review", "done"].map((col) => (
-          <div key={col} className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="text-sm font-extrabold text-slate-900">
-                {col === "todo"
-                  ? "Todo"
-                  : col === "doing"
-                  ? "Doing"
-                  : col === "review"
-                  ? "Review"
-                  : "Done"}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {columns.map((col) => (
+          <div
+            key={col.key}
+            className={`flex flex-col rounded-2xl border border-slate-200/80 border-t-4 ${col.accent} bg-slate-50/50`}
+          >
+            <div className="flex items-center justify-between px-4 py-3">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-slate-900">{col.label}</h3>
+                <Badge variant={col.variant}>{columnData[col.key]?.length || 0}</Badge>
               </div>
-              <div className="text-xs text-slate-500">{columns[col].length}</div>
             </div>
 
-            <div className="space-y-3">
-              {columns[col].map((t) => (
+            <div className="custom-scrollbar flex-1 space-y-3 overflow-y-auto px-3 pb-3" style={{ maxHeight: "calc(100vh - 280px)" }}>
+              {columnData[col.key]?.map((t) => (
                 <TaskCard
                   key={t.id}
                   task={t}
@@ -192,9 +195,9 @@ export default function Tasks() {
                   onTrash={onTrash}
                 />
               ))}
-              {columns[col].length === 0 ? (
-                <div className="rounded-xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-600">
-                  No tasks here yet.
+              {!loading && columnData[col.key]?.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-slate-300 bg-white/60 p-6 text-center">
+                  <p className="text-xs font-medium text-slate-400">No tasks here</p>
                 </div>
               ) : null}
             </div>
