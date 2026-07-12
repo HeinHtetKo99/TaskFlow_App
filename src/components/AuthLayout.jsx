@@ -19,7 +19,7 @@ export default function AuthLayout({ title, subtitle, children, footer }) {
           </div>
 
           <div className="relative animate-fade-in-up">
-            <Link to="/login" className="inline-flex items-center gap-3">
+            <Link to="/welcome" className="inline-flex items-center gap-3">
               <LogoIcon className="h-10 w-10" />
               <span className="text-2xl font-extrabold tracking-tight">TaskFlow</span>
             </Link>

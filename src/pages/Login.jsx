@@ -51,12 +51,19 @@ export default function Login() {
       title="Welcome back"
       subtitle="Sign in to your workspace and pick up where you left off."
       footer={
-        <>
-          New here?{" "}
-          <Link className="font-semibold text-indigo-600 hover:text-indigo-500" to="/register">
-            Create an account
-          </Link>
-        </>
+        <div className="space-y-2">
+          <div>
+            New here?{" "}
+            <Link className="font-semibold text-indigo-600 hover:text-indigo-500" to="/register">
+              Create an account
+            </Link>
+          </div>
+          <div>
+            <Link className="font-semibold text-indigo-600 hover:text-indigo-500" to="/welcome">
+              Try a demo account
+            </Link>
+          </div>
+        </div>
       }
     >
       {error ? (

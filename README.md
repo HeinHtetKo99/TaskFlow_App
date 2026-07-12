@@ -84,7 +84,15 @@ VITE_FIREBASE_MESSAGING_SENDER_ID=YOUR_SENDER_ID
 VITE_FIREBASE_APP_ID=YOUR_APP_ID
 VITE_FIREBASE_MEASUREMENT_ID=YOUR_MEASUREMENT_ID
 
+# Demo welcome-page logins (auto-created in Firebase Auth on first click)
+VITE_DEMO_ADMIN_EMAIL=admin@demo.com
+VITE_DEMO_ADMIN_PASSWORD=demo1234
+VITE_DEMO_MEMBER_EMAIL=member@demo.com
+VITE_DEMO_MEMBER_PASSWORD=demo1234
+
 ✅ Important: restart dev server after adding .env
+
+Demo accounts on `/welcome` sign in with these credentials. On first use, TaskFlow creates the Firebase users and links the member account into the admin demo workspace.
 
 3) Run locally
 npm run dev

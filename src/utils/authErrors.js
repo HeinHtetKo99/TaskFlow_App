@@ -39,6 +39,9 @@ export function validatePassword(password, { minLength = 6, forRegister = false 
 export function getLoginErrorMessage(error) {
   const code = error?.code || "";
   if (LOGIN_MESSAGES[code]) return LOGIN_MESSAGES[code];
+  if (error?.message && !String(error.message).startsWith("Firebase:")) {
+    return error.message;
+  }
   return "Unable to sign in. Please try again.";
 }
 

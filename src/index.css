@@ -41,6 +41,20 @@ body {
   color: var(--text);
 }
 
+button:not(:disabled),
+[type="button"]:not(:disabled),
+[type="submit"]:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+a {
+  cursor: pointer;
+}
+
+button:disabled,
+[type="button"]:disabled,
+[type="submit"]:disabled {
+  cursor: not-allowed;
+}
+
 /* Mesh gradient backgrounds */
 .mesh-bg {
   background-color: #f8fafc;

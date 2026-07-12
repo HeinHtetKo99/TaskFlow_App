@@ -1,4 +1,5 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
+import Welcome from "../pages/Welcome.jsx";
 import Login from "../pages/Login.jsx";
 import Register from "../pages/Register.jsx";
 import Overview from "../pages/Overview.jsx";
@@ -12,7 +13,7 @@ function Protected({ children }) {
   const { user, booting } = useAuth();
 
   if (booting) return <div className="p-6">Loading...</div>;
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/welcome" replace />;
   return children;
 }
 
@@ -38,6 +39,14 @@ export const router = createBrowserRouter([
       { path: "team", element: <Team /> },
       { path: "trash", element: <Trash /> },
     ],
+  },
+  {
+    path: "/welcome",
+    element: (
+      <PublicOnly>
+        <Welcome />
+      </PublicOnly>
+    ),
   },
   {
     path: "/login",

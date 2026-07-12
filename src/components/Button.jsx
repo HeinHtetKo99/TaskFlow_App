@@ -1,6 +1,6 @@
 export default function Button({ variant = "primary", size = "md", className = "", children, ...props }) {
   const base =
-    "inline-flex items-center justify-center gap-2 font-semibold transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 focus-visible:outline-none";
+    "inline-flex cursor-pointer items-center justify-center gap-2 font-semibold transition-all duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 focus-visible:outline-none";
 
   const sizes = {
     sm: "rounded-lg px-3 py-1.5 text-xs",
